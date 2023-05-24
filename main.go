@@ -95,6 +95,7 @@ func newCommentLoopChannel(ctx context.Context, apprv *approvalEnvironment, clie
 			time.Sleep(pollingInterval)
 		}
 	}()
+	fmt.Printf("Final status: %s\n", approvalStatus)
 	return channel, string(approvalStatus)
 }
 
