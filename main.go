@@ -30,15 +30,15 @@ func handleInterrupt(ctx context.Context, client *github.Client, apprv *approval
 	}
 }
 
-func newCommentLoopChannel(ctx context.Context, apprv *approvalEnvironment, client *github.Client) (chan int, string) {
-	channel := make(chan int)
-	var approvalStatus = approvalStatusPending
+func newCommentLoopChannel(ctx context.Context, apprv *approvalEnvironment, client *github.Client) (chan int, chan string) {
+	channel, statusChannel := make(chan int), make(chan string)
 	go func() {
 		for {
 			comments, _, err := client.Issues.ListComments(ctx, apprv.repoOwner, apprv.repo, apprv.approvalIssueNumber, &github.IssueListCommentsOptions{})
 			if err != nil {
 				fmt.Printf("error getting comments: %v\n", err)
 				channel <- 1
+				statusChannel <- "ERROR"
 				close(channel)
 			}
 
@@ -46,10 +46,10 @@ func newCommentLoopChannel(ctx context.Context, apprv *approvalEnvironment, clie
 			if err != nil {
 				fmt.Printf("error getting approval from comments: %v\n", err)
 				channel <- 1
+				statusChannel <- "ERROR"
 				close(channel)
 			}
 			fmt.Printf("Workflow status: %s\n", approved)
-			approvalStatus = approved
 			switch approved {
 			case approvalStatusApproved:
 				newState := "closed"
@@ -60,16 +60,19 @@ func newCommentLoopChannel(ctx context.Context, apprv *approvalEnvironment, clie
 				if err != nil {
 					fmt.Printf("error commenting on issue: %v\n", err)
 					channel <- 1
+					statusChannel <- string(approved)
 					close(channel)
 				}
 				_, _, err = client.Issues.Edit(ctx, apprv.repoOwner, apprv.repo, apprv.approvalIssueNumber, &github.IssueRequest{State: &newState})
 				if err != nil {
 					fmt.Printf("error closing issue: %v\n", err)
 					channel <- 1
+					statusChannel <- string(approved)
 					close(channel)
 				}
 				channel <- 0
 				fmt.Println("Workflow manual approval completed")
+				statusChannel <- string(approved)
 				close(channel)
 			case approvalStatusDenied:
 				newState := "closed"
@@ -80,23 +83,25 @@ func newCommentLoopChannel(ctx context.Context, apprv *approvalEnvironment, clie
 				if err != nil {
 					fmt.Printf("error commenting on issue: %v\n", err)
 					channel <- 1
+					statusChannel <- string(approved)
 					close(channel)
 				}
 				_, _, err = client.Issues.Edit(ctx, apprv.repoOwner, apprv.repo, apprv.approvalIssueNumber, &github.IssueRequest{State: &newState})
 				if err != nil {
 					fmt.Printf("error closing issue: %v\n", err)
 					channel <- 1
+					statusChannel <- string(approved)
 					close(channel)
 				}
 				channel <- 1
+				statusChannel <- string(approved)
 				close(channel)
 			}
 
 			time.Sleep(pollingInterval)
 		}
 	}()
-	fmt.Printf("Final status: %s\n", approvalStatus)
-	return channel, string(approvalStatus)
+	return channel, statusChannel
 }
 
 func newGithubClient(ctx context.Context) (*github.Client, error) {
@@ -199,12 +204,13 @@ func main() {
 	killSignalChannel := make(chan os.Signal, 1)
 	signal.Notify(killSignalChannel, os.Interrupt)
 
-	commentLoopChannel, approvalStatus := newCommentLoopChannel(ctx, apprv, client)
+	commentLoopChannel, approvalStatusChannel := newCommentLoopChannel(ctx, apprv, client)
 	noFailOnApprovals := os.Getenv(envVarNoFailOnApprovals)
 
 	select {
 		case exitCode := <-commentLoopChannel:
-			fmt.Printf(`::set-output name=approval-status::%s`, approvalStatus)
+			approval := <- approvalStatusChannel
+			fmt.Printf(`::set-output name=approval-status::%s`, approval)
 			fmt.Print("\n")
 			if noFailOnApprovals == "true" {
 				fmt.Println("NO_FAIL_ON_APPROVALS set to true. Exiting with status code 0.")
