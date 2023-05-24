@@ -203,12 +203,12 @@ func main() {
 
 	select {
 		case exitCode := <-commentLoopChannel:
+			fmt.Printf(`::set-output name=approval-status::%s`, approvalStatus)
+			fmt.Print("\n")
 			if noFailOnApprovals == "true" {
 				fmt.Println("NO_FAIL_ON_APPROVALS set to true. Exiting with status code 0.")
 				os.Exit(0)
 			}
-			fmt.Printf(`::set-output name=approval-status::%s`, approvalStatus)
-    	fmt.Print("\n")
 			os.Exit(exitCode)
 		case <-killSignalChannel:
 			handleInterrupt(ctx, client, apprv)
