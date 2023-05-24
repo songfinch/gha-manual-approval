@@ -32,7 +32,7 @@ func handleInterrupt(ctx context.Context, client *github.Client, apprv *approval
 
 func newCommentLoopChannel(ctx context.Context, apprv *approvalEnvironment, client *github.Client) (chan int, string) {
 	channel := make(chan int)
-	approvalStatus := approvalStatusPending
+	var approvalStatus = approvalStatusPending
 	go func() {
 		for {
 			comments, _, err := client.Issues.ListComments(ctx, apprv.repoOwner, apprv.repo, apprv.approvalIssueNumber, &github.IssueListCommentsOptions{})
@@ -89,7 +89,6 @@ func newCommentLoopChannel(ctx context.Context, apprv *approvalEnvironment, clie
 					close(channel)
 				}
 				channel <- 1
-				fmt.Println("Workflow manual approval denied ZZZZZZZZZZZZZZZZZZZZZ")
 				close(channel)
 			}
 
