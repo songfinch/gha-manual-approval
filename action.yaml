@@ -31,6 +31,9 @@ inputs:
   no-fail-on-approvals:
     description: Whether or not to fail with an exit code = 1 if approval conditions are not met
     default: false
+outputs:
+  approval-status:
+      description: Approval status
 runs:
   using: docker
   image: docker://ghcr.io/songfinch/manual-approval:latest
