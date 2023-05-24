@@ -89,6 +89,7 @@ func newCommentLoopChannel(ctx context.Context, apprv *approvalEnvironment, clie
 					close(channel)
 				}
 				channel <- 1
+				fmt.Println("Workflow manual approval denied ZZZZZZZZZZZZZZZZZZZZZ")
 				close(channel)
 			}
 
