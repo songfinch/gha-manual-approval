@@ -30,7 +30,7 @@ func handleInterrupt(ctx context.Context, client *github.Client, apprv *approval
 	}
 }
 
-func newCommentLoopChannel(ctx context.Context, apprv *approvalEnvironment, client *github.Client) (chan int, approvalStatus) {
+func newCommentLoopChannel(ctx context.Context, apprv *approvalEnvironment, client *github.Client) (chan int, string) {
 	channel := make(chan int)
 	approvalStatus := approvalStatusPending
 	go func() {
@@ -95,7 +95,7 @@ func newCommentLoopChannel(ctx context.Context, apprv *approvalEnvironment, clie
 			time.Sleep(pollingInterval)
 		}
 	}()
-	return channel, approvalStatus
+	return channel, string(approvalStatus)
 }
 
 func newGithubClient(ctx context.Context) (*github.Client, error) {
