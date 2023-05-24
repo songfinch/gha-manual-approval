@@ -29,4 +29,4 @@ jobs:
       - name: Build
         run: make build
       - name: Push
-        run: make build
+        run: make push
