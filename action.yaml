@@ -31,9 +31,6 @@ inputs:
   no-fail-on-approvals:
     description: Whether or not to fail with an exit code = 1 if approval conditions are not met
     default: false
-  no-fail-on-timeout:
-    description: Whether or not to fail with an exit code = 1 if a timeout happens
-    default: false
 outputs:
   approval-status:
       description: Approval status

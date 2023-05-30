@@ -22,7 +22,6 @@ const (
 	envVarAdditionalApprovedWords            string = "INPUT_ADDITIONAL-APPROVED-WORDS"
 	envVarAdditionalDeniedWords              string = "INPUT_ADDITIONAL-DENIED-WORDS"
 	envVarNoFailOnApprovals              		 string = "INPUT_NO-FAIL-ON-APPROVALS"
-	envVarNoFailOnTimeout               		 string = "INPUT_NO-FAIL-ON-TIMEOUT"
 )
 
 var (
