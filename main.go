@@ -13,6 +13,7 @@ import (
 )
 
 func handleInterrupt(ctx context.Context, client *github.Client, apprv *approvalEnvironment) string {
+	ret := ""
 	newState := "closed"
 	closeComment := "Workflow cancelled, closing issue."
 	fmt.Println(closeComment)
@@ -21,16 +22,16 @@ func handleInterrupt(ctx context.Context, client *github.Client, apprv *approval
 	})
 	if err != nil {
 		fmt.Printf("error commenting on issue: %v\n", err)
-		return "ERROR"
+		ret = "ERROR"
 	} else {
-		return "TIMEOUT"
+		ret = "TIMEOUT"
 	}
 	_, _, err = client.Issues.Edit(ctx, apprv.repoOwner, apprv.repo, apprv.approvalIssueNumber, &github.IssueRequest{State: &newState})
 	if err != nil {
 		fmt.Printf("error closing issue: %v\n", err)
-		return "ERROR"
+		ret = "ERROR"
 	}
-	return ""
+	return ret
 }
 
 func newCommentLoopChannel(ctx context.Context, apprv *approvalEnvironment, client *github.Client) (chan int, chan string) {
