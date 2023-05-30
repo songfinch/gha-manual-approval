@@ -12,7 +12,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-func handleInterrupt(ctx context.Context, client *github.Client, apprv *approvalEnvironment) {
+func handleInterrupt(ctx context.Context, client *github.Client, apprv *approvalEnvironment) string {
 	newState := "closed"
 	closeComment := "Workflow cancelled, closing issue."
 	fmt.Println(closeComment)
@@ -21,13 +21,16 @@ func handleInterrupt(ctx context.Context, client *github.Client, apprv *approval
 	})
 	if err != nil {
 		fmt.Printf("error commenting on issue: %v\n", err)
-		return
+		return "ERROR"
+	} else {
+		return "TIMEOUT"
 	}
 	_, _, err = client.Issues.Edit(ctx, apprv.repoOwner, apprv.repo, apprv.approvalIssueNumber, &github.IssueRequest{State: &newState})
 	if err != nil {
 		fmt.Printf("error closing issue: %v\n", err)
-		return
+		return "ERROR"
 	}
+	return ""
 }
 
 func newCommentLoopChannel(ctx context.Context, apprv *approvalEnvironment, client *github.Client) (chan int, chan string) {
@@ -206,6 +209,7 @@ func main() {
 
 	commentLoopChannel, approvalStatusChannel := newCommentLoopChannel(ctx, apprv, client)
 	noFailOnApprovals := os.Getenv(envVarNoFailOnApprovals)
+	noFailOnTimeout := os.Getenv(envVarNoFailOnTimeout)
 
 	select {
 		case exitCode := <-commentLoopChannel:
@@ -218,7 +222,11 @@ func main() {
 			}
 			os.Exit(exitCode)
 		case <-killSignalChannel:
-			handleInterrupt(ctx, client, apprv)
+			status := handleInterrupt(ctx, client, apprv)
+			if status == "TIMEOUT" && noFailOnTimeout == "true" {
+				fmt.Println("NO_FAIL_ON_TIMEOUT set to true. Exiting with status code 0.")
+				os.Exit(0)
+			}
 			os.Exit(1)
 	}
 }
